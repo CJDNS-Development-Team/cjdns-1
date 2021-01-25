@@ -182,7 +182,11 @@ pub unsafe extern "C" fn Rffi_CryptoAuth2_decrypt(
     match (*sess).0.decrypt(&mut msg) {
         Ok(_) => 0,
         Err(crypto_auth::DecryptError::DecryptErr(e)) => e as c_int,
-        Err(crypto_auth::DecryptError::Internal(_)) => 42 as c_int,
+        Err(crypto_auth::DecryptError::Internal(e)) => {
+            // TODO: log::debug() doesn't work
+            println!("Decryption error {}", e);
+            42
+        }
     }
 }
 

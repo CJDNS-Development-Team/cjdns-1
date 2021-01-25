@@ -1,0 +1,124 @@
+Generating temporary keypair
+    myTempPrivateKey=92eb9c190f0a1b5ccbd532f1174dda6d97d7243039ad412ac6b9208e0db6cfa2
+     myTempPublicKey=941508844342a6db001759c794bdacf23fc64135d28c08e9affbc98ef1c7006c
+
+0x1557046d8 cif1 [fce8:919c:ffb0:0573:99b1:015c:bc67:047f] state[0]: Sending hello packet (auth: false)
+Generated a shared secret:
+     myPublicKey=e3ff75af6e4414494df22f200ffeaa56e7976d991d33cc87f52427e27f83235d
+    herPublicKey=27c303cdc1f96e4b28d51c75130aff6cad52098f2d752615b7b6509ed6a89477
+    passwordHash=NULL
+    outputSecret=5d397d3f8ff8d121f31cdce45b007eb22b99b93f4111ff67394d3c263a9e2a6e
+
+0x155704c78 cif2 [fc07:34e2:5e31:0b96:5aaf:34a9:e2c5:583b] state[0]: Received a hello packet, using auth: false
+Generated a shared secret:
+     myPublicKey=27c303cdc1f96e4b28d51c75130aff6cad52098f2d752615b7b6509ed6a89477
+    herPublicKey=e3ff75af6e4414494df22f200ffeaa56e7976d991d33cc87f52427e27f83235d
+    passwordHash=NULL
+    outputSecret=5d397d3f8ff8d121f31cdce45b007eb22b99b93f4111ff67394d3c263a9e2a6e
+
+1611581234 KEYS CryptoAuth.c:944 Initialized CryptoAuth:
+    myPrivateKey=53ff22b2eb94ce8c5f1852c0f557eb901f067e5273d541e0a21e143c20dff9da
+     myPublicKey=e3ff75af6e4414494df22f200ffeaa56e7976d991d33cc87f52427e27f83235d
+1611581234 KEYS CryptoAuth.c:944 Initialized CryptoAuth:
+    myPrivateKey=b71c4f43e3d4b1879b5065d44a1cb43eaf07ddba96de6a72ca761c4ef4bd2988
+     myPublicKey=27c303cdc1f96e4b28d51c75130aff6cad52098f2d752615b7b6509ed6a89477
+1611581234 KEYS Random.c:227 Random_bytes(0x156004630) -> [b3ae156c891fcf15e72f473c1973415c1f02c24ef0017bc8dded5ebfe4d48bb77e280ab5]
+1611581234 KEYS Random.c:227 Random_bytes(0x156004630) -> [92eb9c190f0a1b5ccbd532f1174dda6d97d7243039ad412ac6b9208e0db6cfa2]
+1611581234 KEYS CryptoAuth.c:393 Generating temporary keypair
+    myTempPrivateKey=92eb9c190f0a1b5ccbd532f1174dda6d97d7243039ad412ac6b9208e0db6cfa2
+     myTempPublicKey=941508844342a6db001759c794bdacf23fc64135d28c08e9affbc98ef1c7006c
+1611581234 KEYS CryptoAuth.c:405 Wrapping temp public key:
+    941508844342a6db001759c794bdacf23fc64135d28c08e9affbc98ef1c7006c
+1611581234 DEBUG CryptoAuth.c:411 0x155704520 cif1 [fce8:919c:ffb0:0573:99b1:015c:bc67:047f] state[0]: Sending hello packet (auth: 0)
+1611581234 KEYS CryptoAuth.c:119 Generated a shared secret:
+     myPublicKey=e3ff75af6e4414494df22f200ffeaa56e7976d991d33cc87f52427e27f83235d
+    herPublicKey=27c303cdc1f96e4b28d51c75130aff6cad52098f2d752615b7b6509ed6a89477
+    passwordHash=NULL
+    outputSecret=5d397d3f8ff8d121f31cdce45b007eb22b99b93f4111ff67394d3c263a9e2a6e
+1611581234 KEYS CryptoAuth.c:468 Encrypting message with:
+    nonce: 1973415c1f02c24ef0017bc8dded5ebfe4d48bb77e280ab5
+   secret: 5d397d3f8ff8d121f31cdce45b007eb22b99b93f4111ff67394d3c263a9e2a6e
+   cipher: ad20a9c02e50059b55abc7313c9b1d40f52deafaa425ca0dd5f98a92643fde33
+1611581234 KEYS Random.c:227 Random_bytes(0x156004820) -> [b3ae156c891fcf15e72f473c1973415c1f02c24ef0017bc8dded5ebfe4d48bb77e280ab5]
+1611581234 KEYS Random.c:227 Random_bytes(0x156004820) -> [92eb9c190f0a1b5ccbd532f1174dda6d97d7243039ad412ac6b9208e0db6cfa2]
+A: [0000000000ae156c891fcf15e72f00001973415c1f02c24ef0017bc8dded5ebfe4d48bb77e280ab5e3ff75af6e4414494df22f200ffeaa56e7976d991d33cc87f52427e27f83235dad20a9c02e50059b55abc7313c9b1d40f52deafaa425ca0dd5f98a92643fde33e8f22c172ca2fa20c6b86328ddd38079bfb0f3c9f75e06454c18d3]
+B: [0000000000ae156c891fcf15e72f00001973415c1f02c24ef0017bc8dded5ebfe4d48bb77e280ab5e3ff75af6e4414494df22f200ffeaa56e7976d991d33cc87f52427e27f83235dad20a9c02e50059b55abc7313c9b1d40f52deafaa425ca0dd5f98a92643fde33e8f22c172ca2fa20c6b86328ddd38079bfb0f3c9f75e06454c18d3]
+1611581234 DEBUG CryptoAuth.c:613 0x155704ac0 cif2 [fc07:34e2:5e31:0b96:5aaf:34a9:e2c5:583b] state[0]: Received a hello packet, using auth: 0
+1611581234 KEYS CryptoAuth.c:119 Generated a shared secret:
+     myPublicKey=27c303cdc1f96e4b28d51c75130aff6cad52098f2d752615b7b6509ed6a89477
+    herPublicKey=e3ff75af6e4414494df22f200ffeaa56e7976d991d33cc87f52427e27f83235d
+    passwordHash=NULL
+    outputSecret=5d397d3f8ff8d121f31cdce45b007eb22b99b93f4111ff67394d3c263a9e2a6e
+1611581234 KEYS CryptoAuth.c:656 Decrypting message with:
+    nonce: 1973415c1f02c24ef0017bc8dded5ebfe4d48bb77e280ab5
+   secret: 5d397d3f8ff8d121f31cdce45b007eb22b99b93f4111ff67394d3c263a9e2a6e
+   cipher: ad20a9c02e50059b55abc7313c9b1d40f52deafaa425ca0dd5f98a92643fde33
+1611581234 KEYS CryptoAuth.c:679 Unwrapping temp public key:
+    941508844342a6db001759c794bdacf23fc64135d28c08e9affbc98ef1c7006c
+1611581234 KEYS Random.c:227 Random_bytes(0x156004a10) -> [3cd92fac84ae0eba400494e65a90f49ecf823b9cd6bad02c7b80f03eaf668bcbe79c26ca]
+1611581234 KEYS Random.c:227 Random_bytes(0x156004a10) -> [60ee6e26b6b19876efd60f4fee060fc2448298e2ee51e2520f33cb9607ea34a6]
+1611581234 KEYS CryptoAuth.c:393 Generating temporary keypair
+    myTempPrivateKey=60ee6e26b6b19876efd60f4fee060fc2448298e2ee51e2520f33cb9607ea34a6
+     myTempPublicKey=6e9c525df1c2d9d41d5458454375a8df5d4aa286be45b33364e7f3979edd8502
+1611581234 KEYS CryptoAuth.c:405 Wrapping temp public key:
+    6e9c525df1c2d9d41d5458454375a8df5d4aa286be45b33364e7f3979edd8502
+1611581234 DEBUG CGenerating temporary keypair
+    myTempPrivateKey=60ee6e26b6b19876efd60f4fee060fc2448298e2ee51e2520f33cb9607ea34a6
+     myTempPublicKey=6e9c525df1c2d9d41d5458454375a8df5d4aa286be45b33364e7f3979edd8502
+
+0x155704c78 cif2 [fc07:34e2:5e31:0b96:5aaf:34a9:e2c5:583b] state[2]: Sending key packet (auth: false)
+Generated a shared secret:
+     myPublicKey=27c303cdc1f96e4b28d51c75130aff6cad52098f2d752615b7b6509ed6a89477
+    herPublicKey=f52deafaa425ca0dd5f98a92643fde33e8f22c172ca2fa20c6b86328ddd38079
+    passwordHash=NULL
+    outputSecret=ab8031fec10465ccc73fb5fadc336ae1d53c5ec32d543ecea56411856585cb6e
+
+thread 'main' panicked at 'xxx', rust/cjdns_sys/src/crypto/crypto_auth.rs:1331:9
+stack backtrace:
+   0: std::panicking::begin_panic
+             at /Users/user/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/panicking.rs:521:12
+   1: cjdns_sys::crypto::crypto_auth::get_shared_secret
+             at ./rust/cjdns_sys/src/crypto/crypto_auth.rs:1331:9
+   2: cjdns_sys::crypto::crypto_auth::SessionMut::encrypt_handshake
+             at ./rust/cjdns_sys/src/crypto/crypto_auth.rs:749:29
+   3: cjdns_sys::crypto::crypto_auth::SessionMut::encrypt
+             at ./rust/cjdns_sys/src/crypto/crypto_auth.rs:498:24
+   4: cjdns_sys::crypto::crypto_auth::Session::encrypt
+             at ./rust/cjdns_sys/src/crypto/crypto_auth.rs:1251:9
+   5: Rffi_CryptoAuth2_encrypt
+             at ./rust/cjdns_sys/src/rffi.rs:170:11
+   6: TestCa_encrypt
+             at ./crypto/test/TestCa.c:142:18
+   7: encryptMsg
+             at ./crypto/test/CryptoAuth_test.c:110:18
+   8: sendToIf1
+             at ./crypto/test/CryptoAuth_test.c:136:27
+   9: normal
+             at ./crypto/test/CryptoAuth_test.c:152:5
+  10: iteration
+             at ./crypto/test/CryptoAuth_test.c:328:5
+  11: CryptoAuth_test_main
+             at ./crypto/test/CryptoAuth_test.c:346:5
+  12: main2
+             at ./test/testcjdroute.c:235:17
+  13: testcjdroute_main
+             at ./test/testcjdroute.c:276:15
+  14: testcjdroute::main
+             at ./rust/cjdns_sys/src/lib.rs:21:22
+  15: core::ops::function::FnOnce::call_once
+             at /Users/user/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/function.rs:227:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+ryptoAuth.c:411 0x155704ac0 cif2 [fc07:34e2:5e31:0b96:5aaf:34a9:e2c5:583b] state[2]: Sending key packet (auth: 0)
+1611581234 KEYS CryptoAuth.c:119 Generated a shared secret:
+     myPublicKey=27c303cdc1f96e4b28d51c75130aff6cad52098f2d752615b7b6509ed6a89477
+    herPublicKey=941508844342a6db001759c794bdacf23fc64135d28c08e9affbc98ef1c7006c
+    passwordHash=NULL
+    outputSecret=1292956f32fec713ff6f9b3ac98b941be9197963d0843e580ea0c9b2e449f16d
+1611581234 KEYS CryptoAuth.c:444 Using their temp public key:
+    941508844342a6db001759c794bdacf23fc64135d28c08e9affbc98ef1c7006c
+1611581234 KEYS CryptoAuth.c:468 Encrypting message with:
+    nonce: 5a90f49ecf823b9cd6bad02c7b80f03eaf668bcbe79c26ca
+   secret: 1292956f32fec713ff6f9b3ac98b941be9197963d0843e580ea0c9b2e449f16d
+   cipher: 8b3a71de401bd672a4ac0ff4d95020f75de795e13f882fc5a5e9700c4761763f
+1611581234 KEYS Random.c:227 Random_bytes(0x156004c00) -> [3cd92fac84ae0eba400494e65a90f49ecf823b9cd6bad02c7b80f03eaf668bcbe79c26ca]
+1611581234 KEYS Random.c:227 Random_bytes(0x156004c00) -> [60ee6e26b6b19876efd60f4fee060fc2448298e2ee51e2520f33cb9607ea34a6]

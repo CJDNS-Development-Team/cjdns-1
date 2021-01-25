@@ -342,7 +342,7 @@ static void iteration(enum TestCa_Config cfg)
 
 int main()
 {
-    iteration(TestCa_Config_OLD);
+    //iteration(TestCa_Config_OLD);
     iteration(TestCa_Config_OLD_NEW);
     iteration(TestCa_Config_NOISE);
     return 0;

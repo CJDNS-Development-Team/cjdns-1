@@ -230,7 +230,7 @@ macro_rules! ensure {
 }
 
 impl CryptoAuth {
-    const LOG_KEYS: bool = false;
+    const LOG_KEYS: bool = true;
 
     /// Create a new crypto authenticator.
     ///
@@ -533,11 +533,6 @@ impl SessionMut {
             return Err(DecryptError::DecryptErr(DecryptErr::Runt));
         }
 
-        ensure!(
-            msg.pad() >= 12,
-            DecryptError,
-            "Need at least 12 bytes of padding in incoming message"
-        );
         ensure!(msg.is_aligned_to(4), DecryptError, "Alignment fault");
         ensure!(msg.cap() % 4 == 0, DecryptError, "Length fault");
 
@@ -697,7 +692,7 @@ impl SessionMut {
             };
 
             if CryptoAuth::LOG_KEYS {
-                debug!(
+                println!(
                     concat!(
                         "Generating temporary keypair\n",
                         "    myTempPrivateKey={}\n",
@@ -1316,7 +1311,7 @@ fn get_shared_secret(
     };
 
     if CryptoAuth::LOG_KEYS {
-        debug!(
+        println!(
             concat!(
                 "Generated a shared secret:\n",
                 "     myPublicKey={}\n",
@@ -1329,6 +1324,11 @@ fn get_shared_secret(
             debug::hex_key_opt(password_hash.as_ref()),
             debug::hex_key(&output_secret),
         );
+    }
+    if her_public_key[..]
+        == hex::decode("f52deafaa425ca0dd5f98a92643fde33e8f22c172ca2fa20c6b86328ddd38079").unwrap()
+    {
+        panic!("xxx");
     }
 
     output_secret
@@ -1456,20 +1456,20 @@ mod debug {
         S: AsRef<str>,
         F: FnOnce() -> S,
     {
-        if log::log_enabled!(log::Level::Debug) {
-            let sess_ptr = session as *const SessionMut;
-            let dn = session.display_name.as_deref().unwrap_or("");
-            let addr = get_ip6(session);
-            let msg = msg();
-            log::debug!(
-                "{:?} {} [{}] state[{}]: {}",
-                sess_ptr,
-                dn,
-                addr,
-                session.next_nonce,
-                msg.as_ref()
-            );
-        }
+        //if log::log_enabled!(log::Level::Debug) {
+        let sess_ptr = session as *const SessionMut;
+        let dn = session.display_name.as_deref().unwrap_or("");
+        let addr = get_ip6(session);
+        let msg = msg();
+        println!(
+            "{:?} {} [{}] state[{}]: {}",
+            sess_ptr,
+            dn,
+            addr,
+            session.next_nonce,
+            msg.as_ref()
+        );
+        //}
     }
 
     #[inline]
@@ -1878,12 +1878,7 @@ mod tests {
         unsafe {
             let alloc = cffi::MallocAllocator__new(1 << 20, "".as_ptr() as *const c_char, 0);
             let fake_seed = cffi::DeterminentRandomSeed_new(alloc, std::ptr::null_mut());
-            cffi::Random_newWithSeed(
-                alloc,
-                std::ptr::null_mut(),
-                fake_seed,
-                std::ptr::null_mut(),
-            )
+            cffi::Random_newWithSeed(alloc, std::ptr::null_mut(), fake_seed, std::ptr::null_mut())
         }
     }
 }

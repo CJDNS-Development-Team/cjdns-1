@@ -15,6 +15,9 @@
 #include "crypto/test/TestCa.h"
 #include "crypto/CryptoAuth.h"
 #include "rust/cjdns_sys/Rffi.h"
+#include "util/Hex.h"
+
+#include <stdio.h>
 
 struct TestCa_s {
     Rffi_CryptoAuth2_t* ca2;
@@ -140,6 +143,10 @@ int TestCa_encrypt(TestCa_Session_t* sess, Message_t *msg)
         if (sess->s) {
             Assert_true(i2 == i1);
             Assert_true(msg->length == m2->length);
+            char* a = Hex_print(msg->bytes, msg->length, msg->alloc);
+            char* b = Hex_print(m2->bytes, m2->length, m2->alloc);
+            printf("A: [%s]\n", a);
+            printf("B: [%s]\n", b);
             Assert_true(!Bits_memcmp(msg->bytes, m2->bytes, msg->length));
         }
         return i2;
@@ -165,6 +172,9 @@ int TestCa_decrypt(TestCa_Session_t *sess, Message_t *msg)
     if (sess->s2) {
         int i2 = Rffi_CryptoAuth2_decrypt(sess->s2, m2);
         if (sess->s) {
+            if (i2 != i1) {
+                printf("i2 = %d  i1 = %d\n", i2, i1);
+            }
             Assert_true(i2 == i1);
             Assert_true(msg->length == m2->length);
             Assert_true(!Bits_memcmp(msg->bytes, m2->bytes, msg->length));
