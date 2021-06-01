@@ -1,6 +1,5 @@
 //! CryptoAuth
 
-use std::cell::RefCell;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -96,7 +95,14 @@ pub struct SessionMut {
     /// If true and the other end is connecting, do not respond until a valid password is sent.
     require_auth: bool,
 
+    /// True if the connection fully established (classic CA) or WireGuard tunnel created (Noise mode)
     established: bool,
+
+    /// True if WireGuard tunnel should be used instead of classic CA
+    use_noise: bool,
+
+    /// WireGuard tunnel: if `None` the old protocol is used
+    tunnel: Option<Box<Tunn>>,
 }
 
 pub struct Session {
@@ -109,9 +115,6 @@ pub struct Session {
     /// A pointer back to the main CryptoAuth context.
     context: Arc<CryptoAuth>,
 
-    /// WireGuard tunnel: if `None` the old protocol is used
-    tunnel: RefCell<Option<Box<Tunn>>>,
-
     plain_pvt: IfacePvt,
     cipher_pvt: IfacePvt,
 }
@@ -122,6 +125,11 @@ enum Nonce {
     Key = 2,
     RepeatKey = 3,
     FirstTrafficPacket = 4,
+}
+
+enum DecryptStatus {
+    Success,
+    RetryWithNoise,
 }
 
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
@@ -550,7 +558,7 @@ impl SessionMut {
         Ok(())
     }
 
-    fn decrypt(sess: &Session, msg: &mut Message) -> Result<bool> {
+    fn decrypt(sess: &Session, msg: &mut Message) -> Result<DecryptStatus> {
         let session = sess.session_mut.upgradable_read();
 
         if msg.len() < 20 {
@@ -575,7 +583,9 @@ impl SessionMut {
         if !session.established {
             if nonce == CryptoHeader::NOISE_PROTOCOL_NONCE { // Auto-detect WireGuard protocol
                 msg.push(state).expect("push state back");
-                return Ok(true); // Retry decrypt in WireGuard mode
+                let mut session = RwLockUpgradableReadGuard::upgrade(session);
+                session.use_noise = true;
+                return Ok(DecryptStatus::RetryWithNoise); // Retry decrypt in WireGuard mode
             } else if nonce >= Nonce::FirstTrafficPacket as u32 {
                 if session.next_nonce < State::SentKey as u32 {
                     // This is impossible because we have not exchanged hello and key messages.
@@ -610,10 +620,10 @@ impl SessionMut {
                     session.established = true;
                     session.next_nonce += 3;
                     session.update_time(msg, sess.context.clone());
-                    return Ok(false);
+                    return Ok(DecryptStatus::Success);
                 }
                 debug::log(&session, || "DROP Final handshake step failed");
-                ret.map(|()| false)
+                ret.map(|()| DecryptStatus::Success)
             } else {
                 msg.push(state).expect("push state back");
 
@@ -622,7 +632,7 @@ impl SessionMut {
 
                 let mut session = RwLockUpgradableReadGuard::upgrade(session);
 
-                session.decrypt_handshake(nonce, msg, header, sess).map(|()| false)
+                session.decrypt_handshake(nonce, msg, header, sess).map(|()| DecryptStatus::Success)
             }
         } else if nonce >= Nonce::FirstTrafficPacket as u32 {
             debug_assert!(!session.shared_secret.is_zero());
@@ -633,7 +643,7 @@ impl SessionMut {
                     let mut session = RwLockUpgradableReadGuard::upgrade(session);
 
                     session.update_time(msg, sess.context.clone());
-                    Ok(false)
+                    Ok(DecryptStatus::Success)
                 }
                 Err(err) => {
                     debug::log(&session, || {
@@ -653,7 +663,7 @@ impl SessionMut {
             ensure!(msg.len() >= CryptoHeader::SIZE, DecryptError);
             let header = msg.peek::<CryptoHeader>().unwrap().clone();
 
-            session.decrypt_handshake(nonce, msg, header, sess).map(|()| false)
+            session.decrypt_handshake(nonce, msg, header, sess).map(|()| DecryptStatus::Success)
         } else {
             debug::log(&session, || {
                 format!(
@@ -1251,13 +1261,6 @@ impl Session {
         }
         let her_ip6 = ip6_from_key(&her_pub_key.raw());
 
-        let tunnel = if use_noise {
-            let res = Self::create_tunnel(&context, &her_pub_key);
-            Some(res.map_err(|s| KeyError::BadWireGuardKey(s))?)
-        } else {
-            None
-        };
-
         let (mut plaintext, plain_pvt) = iface::new("CryptoAuth::Session plaintext");
         let (mut ciphertext, cipher_pvt) = iface::new("CryptoAuth::Session ciphertext");
 
@@ -1281,10 +1284,11 @@ impl Session {
                 is_initiator: false,
                 require_auth,
                 established: false,
+                use_noise,
+                tunnel: None,
             }),
             replay_protector: Mutex::new(ReplayProtector::new()),
             context,
-            tunnel: RefCell::new(tunnel),
             plain_pvt,
             cipher_pvt,
         });
@@ -1295,7 +1299,7 @@ impl Session {
         Ok((sess, plaintext, ciphertext))
     }
 
-    fn create_tunnel(ca: &CryptoAuth, her_pub_key: &PublicKey) -> Result<Box<Tunn>, &'static str> {
+    fn create_tunnel(ca: &CryptoAuth, her_pub_key: &PublicKey, preshared_key: Option<[u8; 32]>) -> Result<Box<Tunn>, &'static str> {
         // Unfortunately, Boringtun private key cannot be constructed from raw bytes.
         // As a workaround, we convert the key to a HEX string
         // and then parse it into Boringtun secret key.
@@ -1304,7 +1308,7 @@ impl Session {
 
         let pub_key = X25519PublicKey::from(&her_pub_key.raw()[..]);
 
-        let mut t = Tunn::new(Arc::new(priv_key), Arc::new(pub_key), None, None, 0, None)?;
+        let mut t = Tunn::new(Arc::new(priv_key), Arc::new(pub_key), preshared_key, None, 0, None)?;
 
         if log::log_enabled!(log::Level::Debug) {
             t.set_logger(
@@ -1339,7 +1343,7 @@ impl Session {
     }
 
     pub fn stats(&self) -> CryptoStats {
-        if let Some(tunnel) = self.tunnel.borrow().as_ref() {
+        if let Some(tunnel) = self.session_mut.read().tunnel.as_ref() {
             let (_time, _tx_bytes, rx_bytes, _loss, _rtt) = tunnel.stats();
             CryptoStats {
                 lost_packets: 0,
@@ -1383,8 +1387,8 @@ impl Session {
 
     /// Encrypts the message inplace. The new content of `msg` should be sent to the peer.
     fn encrypt_msg(&self, msg: &mut Message) -> Result<()> {
-        if let Some(tunnel) = self.tunnel.borrow().as_ref() {
-            self.noise_encrypt(msg, tunnel)
+        if self.session_mut.read().use_noise {
+            self.noise_encrypt(msg)
         } else {
             SessionMut::encrypt(self, msg)
         }
@@ -1396,64 +1400,83 @@ impl Session {
     /// Additional messages might be sent to the peer (in the handshake phase),
     /// the corresponding iface is used in that case.
     fn decrypt_msg(&self, msg: &mut Message) -> Result<Vec<Vec<u8>>> {
-        if let Some(tunnel) = self.tunnel.borrow().as_ref() {
-            return self.noise_decrypt(msg, tunnel);
+        if !self.session_mut.read().use_noise {
+            match SessionMut::decrypt(self, msg)? {
+                DecryptStatus::Success => {
+                    return Ok(Vec::new());
+                }
+                DecryptStatus::RetryWithNoise => {
+                    // decrypt() must set this flag to true if it detects Noise protocol
+                    // debug_assert!(self.session_mut.read().use_noise, "internal error");
+                }
+            }
         }
 
-        let autodetected_noise = SessionMut::decrypt(self, msg)?;
-        if autodetected_noise {
-            let res = Self::create_tunnel(&self.context, &self.session_mut.read().her_public_key);
-            let tun = Some(res.map_err(|s| KeyError::BadWireGuardKey(s))?);
-            {
-                let mut tunnel = self.tunnel.borrow_mut();
-                *tunnel = tun;
-            }
-            let tunnel = self.tunnel.borrow();
-            let tunnel = tunnel.as_ref().unwrap(); // Unwrap is safe because we've just set it
-            self.noise_decrypt(msg, tunnel)
-        } else {
-            Ok(Vec::new())
-        }
+        debug_assert!(self.session_mut.read().use_noise, "internal error");
+        self.noise_decrypt(msg)
     }
 
-    fn noise_encrypt(&self, msg: &mut Message, tunnel: &Tunn) -> Result<()> {
-        Self::tun_send(tunnel, msg)?;
-
+    fn noise_encrypt(&self, msg: &mut Message) -> Result<()> {
         let session = self.session_mut.upgradable_read();
 
-        if session.established {
-            return Ok(());
-        }
+        let mut header: Option<CryptoHeader>;
 
-        // Prepend encrypted message with a CryptoHeader struct
-        ensure!(msg.pad() >= CryptoHeader::SIZE, EncryptError, "no space for CryptoHeader");
-        let mut header = CryptoHeader::default();
+        let session = if !session.established {
+            let mut session = RwLockUpgradableReadGuard::upgrade(session);
 
-        header.nonce = CryptoHeader::NOISE_PROTOCOL_NONCE.to_be(); // Big-endian
+            // Create CryptoHeader
+            header = Some(CryptoHeader::default());
+            let header = header.as_mut().unwrap();
 
-        if let Some(password) = session.password.as_ref() {
-            let login = session.login.as_ref().map(|s| s.as_ref()).unwrap_or(b"");
-            let (_, auth) = hash_password(login, password, session.auth_type);
-            header.auth = auth;
+            header.nonce = CryptoHeader::NOISE_PROTOCOL_NONCE.to_be(); // Big-endian
+
+            // Password auth
+            let password_hash;
+            if let Some(password) = session.password.as_ref() {
+                let login = session.login.as_ref().map(|s| s.as_ref()).unwrap_or(b"");
+                let (pwd_hash, auth) = hash_password(login, password, session.auth_type);
+                header.auth = auth;
+                password_hash = Some(pwd_hash);
+            } else {
+                header.auth.auth_type = session.auth_type; // Supposed to be AuthType::Zero
+                password_hash = None;
+            }
+
+            header.public_key = *self.context.public_key.raw();
+
+            // Create WireGuard tunnel
+            let res = Self::create_tunnel(&self.context, &session.her_public_key, password_hash);
+            let tun = res.map_err(|s| KeyError::BadWireGuardKey(s))?;
+            session.tunnel = Some(tun);
+
+            session.established = true;
+            RwLockWriteGuard::downgrade_to_upgradable(session)
         } else {
-            header.auth.auth_type = session.auth_type; // Supposed to be AuthType::Zero
+            header = None;
+            session
+        };
+
+        let tunnel = session.tunnel.as_ref().expect("WG tunnel");
+        Self::tun_send(tunnel, msg)?;
+
+        if let Some(header) = header {
+            // Prepend encrypted message with a CryptoHeader struct
+            ensure!(msg.pad() >= CryptoHeader::SIZE, EncryptError, "no space for CryptoHeader");
+
+            let r = msg.push(header);
+            ensure!(r.is_ok(), EncryptError, "push CryptoHeader failed");
         }
 
-        header.public_key = *self.context.public_key.raw();
-
-        let r = msg.push(header);
-        ensure!(r.is_ok(), EncryptError, "push CryptoHeader failed");
-
-        let mut session = RwLockUpgradableReadGuard::upgrade(session);
-        session.established = true;
         Ok(())
     }
 
-    fn noise_decrypt(&self, msg: &mut Message, tunnel: &Tunn) -> Result<Vec<Vec<u8>>> {
+    fn noise_decrypt(&self, msg: &mut Message) -> Result<Vec<Vec<u8>>> {
         let session = self.session_mut.upgradable_read();
 
         // Parse and remove the prepended CryptoHeader struct
-        if !session.established {
+        let session = if !session.established {
+            let mut session = RwLockUpgradableReadGuard::upgrade(session);
+
             ensure!(msg.len() >= CryptoHeader::SIZE, DecryptError, "no CryptoHeader");
             let header = msg.pop::<CryptoHeader>()?;
             require!(header.nonce.to_be() == CryptoHeader::NOISE_PROTOCOL_NONCE, DecryptErr::InvalidPacket, &session, "bad nonce: expected Noise handshake");
@@ -1464,7 +1487,9 @@ impl Session {
             let user_opt = self.context.get_auth(&header.auth);
             let has_user = user_opt.is_some();
 
+            let password_hash;
             if let Some(user) = user_opt {
+                password_hash = Some(user.secret);
                 if let Some(rip6) = user.restricted_to_ip6 {
                     let ip6_matches_key = {
                         let pub_key = &session.her_public_key;
@@ -1472,16 +1497,26 @@ impl Session {
                     };
                     require!(ip6_matches_key, DecryptErr::IpRestricted, &session, "DROP packet with key not matching restrictedToIp6");
                 }
+            } else {
+                password_hash = None;
             }
 
             require!(!session.require_auth || has_user, DecryptErr::AuthRequired, &session, "DROP message because auth was not given");
             require!(has_user || header.auth.auth_type == AuthType::Zero, DecryptErr::UnrecognizedAuth, &session, "DROP message with unrecognized authenticator");
 
-            let mut session = RwLockUpgradableReadGuard::upgrade(session);
+            // Create WireGuard tunnel
+            let res = Self::create_tunnel(&self.context, &session.her_public_key, password_hash);
+            let tun = res.map_err(|s| KeyError::BadWireGuardKey(s))?;
+            session.tunnel = Some(tun);
+
             session.established = true;
             log::debug!("Got noise setup packet");
-        }
+            RwLockWriteGuard::downgrade_to_upgradable(session)
+        } else {
+            session
+        };
 
+        let tunnel = session.tunnel.as_ref().expect("WG tunnel");
         Ok(match Self::tun_recv(tunnel, msg)? {
             Some(sm) => sm,
             None => Vec::new(),
