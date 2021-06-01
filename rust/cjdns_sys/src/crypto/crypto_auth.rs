@@ -1196,7 +1196,6 @@ fn ip6_from_key(key: &[u8; 32]) -> [u8; 16] {
 pub struct PlaintextRecv(Arc<Session>);
 impl IfRecv for PlaintextRecv {
     fn recv(&self, m: &mut Message) -> Result<()> {
-        anyhow::ensure!(m.len() > 0, "Zero-length message is prohibited"); // No real message can be 0 bytes in length
         self.0.encrypt_msg(m)?;
         self.0.cipher_pvt.send(m)
     }
@@ -2287,7 +2286,7 @@ mod tests {
             struct Plaintext(Rc<RefCell<Vec<u8>>>);
             impl IfRecv for Plaintext {
                 fn recv(&self, m: &mut Message) -> anyhow::Result<()> {
-                    assert!(m.len() > 4, "empty message received");
+                    assert!(m.len() >= 4, "broken message received");
                     m.discard_bytes(4)?; // Extra zeroes added by CiphertextRecv
                     self.0.borrow_mut().extend_from_slice(m.peek_bytes(m.len())?);
                     Ok(())
@@ -2386,7 +2385,7 @@ mod tests {
             struct Plaintext(Rc<RefCell<Vec<u8>>>);
             impl IfRecv for Plaintext {
                 fn recv(&self, m: &mut Message) -> anyhow::Result<()> {
-                    assert!(m.len() > 4, "empty message received");
+                    assert!(m.len() >= 4, "broken message received");
                     m.discard_bytes(4)?; // Extra zeroes added by CiphertextRecv
                     self.0.borrow_mut().extend_from_slice(m.peek_bytes(m.len())?);
                     Ok(())
