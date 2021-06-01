@@ -430,21 +430,29 @@ impl SessionMut {
     }
 
     fn get_state(&self) -> State {
-        if self.next_nonce <= State::ReceivedKey as u32 {
-            let ret = match self.next_nonce {
-                0 => State::Init,
-                1 => State::SentHello,
-                2 => State::ReceivedHello,
-                3 => State::SentKey,
-                4 => State::ReceivedKey,
-                _ => unreachable!(),
-            };
-            debug_assert_eq!(self.next_nonce, ret as u32);
-            ret
-        } else if self.established {
-            State::Established
+        if self.use_noise {
+            if self.established {
+                State::Established
+            } else {
+                State::Init
+            }
         } else {
-            State::ReceivedKey
+            if self.next_nonce <= State::ReceivedKey as u32 {
+                let ret = match self.next_nonce {
+                    0 => State::Init,
+                    1 => State::SentHello,
+                    2 => State::ReceivedHello,
+                    3 => State::SentKey,
+                    4 => State::ReceivedKey,
+                    _ => unreachable!(),
+                };
+                debug_assert_eq!(self.next_nonce, ret as u32);
+                ret
+            } else if self.established {
+                State::Established
+            } else {
+                State::ReceivedKey
+            }
         }
     }
 
